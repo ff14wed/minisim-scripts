@@ -1,11 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
+export function get_job_display_name(job: Job): string;
+export function get_job_glyph(job: Job): string;
 export function mvec2(x: number, y: number): MVec2;
-/**
- * Generates points that are evenly spaced around a point at a given distance
- * Requires passing in the angles with which to surround the point.
- */
-export function surround_point(point: MVec2, distance: number, angles: Float32Array): MVec2[];
 /**
  * Generates n evenly spaced angles counter-clockwise from start_angle to end_angle
  *
@@ -17,6 +14,11 @@ export function surround_point(point: MVec2, distance: number, angles: Float32Ar
  * a full rotation.
  */
 export function n_evenly_spaced_angles(n: number, start_angle: number, end_angle: number): Float32Array;
+/**
+ * Generates points that are evenly spaced around a point at a given distance
+ * Requires passing in the angles with which to surround the point.
+ */
+export function surround_point(point: MVec2, distance: number, angles: Float32Array): MVec2[];
 export enum Arena {
   TopPhase1 = 0,
   TopPhase2 = 1,
@@ -25,6 +27,29 @@ export enum Arena {
   TopPhase5 = 4,
   TopPhase6 = 5,
   M5Savage = 6,
+}
+export enum Job {
+  Astrologian = 0,
+  Bard = 1,
+  BlackMage = 2,
+  Dancer = 3,
+  DarkKnight = 4,
+  Dragoon = 5,
+  Gunbreaker = 6,
+  Machinist = 7,
+  Monk = 8,
+  Ninja = 9,
+  Paladin = 10,
+  Pictomancer = 11,
+  Reaper = 12,
+  RedMage = 13,
+  Sage = 14,
+  Samurai = 15,
+  Scholar = 16,
+  Summoner = 17,
+  Viper = 18,
+  Warrior = 19,
+  WhiteMage = 20,
 }
 export enum Motion {
   Linear = 0,
@@ -61,12 +86,12 @@ export class ApplyStatusEffectCommand {
    * Applies the status effect to the role. Awaiting this method will
    * wait until the effect is expired.
    */
-  execute_and_await_expiration(): Promise<void>;
+  apply_and_await_expiration(role: Role): Promise<void>;
   /**
    * Applies the status effect to the role. Awaiting this method will
    * wait until the effect is applied.
    */
-  execute(): Promise<void>;
+  apply(role: Role): Promise<void>;
 }
 /**
  * Public interface for commands that can be executed in an encounter. Should
@@ -89,23 +114,25 @@ export class EncounterCommands {
    */
   apply_damage(role: Role, damage: number): void;
   /**
-   * Shows a message to the user.
+   * Returns a command for moving an entity to the target position
+   * over the specified duration in milliseconds. Does nothing until
+   * `apply()` is called on on a target.
    */
-  show_message(message: string): void;
+  auto_movement(destination: Transform2D, duration_ms: number): StartAutoMovementCommand;
   /**
    * Chooses a random number between 0 and n-1
    */
   choose_random(n: number): number;
   /**
+   * Returns a command for applying a status effect to a role.  Applying the
+   * command to a role returns a future that can be awaited for the
+   * expiration of the effect. Does nothing until `apply()` is called.
+   */
+  status_effect(id: number, duration_ms: number): ApplyStatusEffectCommand;
+  /**
    * Sleeps for the specified duration in milliseconds.
    */
   sleep_duration(duration_ms: number): Promise<void>;
-  /**
-   * Returns a command for building a telegraph that will show the AoE shape
-   * for a duration. Executing the command returns its entity ID once it is
-   * spawned. Does nothing until `execute()` is called on it.
-   */
-  build_telegraph(shape: Shape): SpawnEntityCommand;
   /**
    * Ends the encounter.
    */
@@ -115,28 +142,27 @@ export class EncounterCommands {
    */
   entity_expiration(id: number): Promise<void>;
   /**
-   * Returns a command for moving the specified entity to the target position
-   * over the specified duration in milliseconds. Does nothing until
-   * `execute()` is called on it.
-   */
-  build_auto_movement(target: number, destination: Transform2D, duration_ms: number): StartAutoMovementCommand;
-  /**
-   * Returns a command for applying a status effect to the specified role.
-   * Executing the command returns a future that can be awaited for the
-   * expiration of the effect. Does nothing until `execute()` is called.
-   */
-  build_status_effect(role: Role, id: number, duration_ms: number): ApplyStatusEffectCommand;
-  /**
    * Returns a snapshot of the role and positions that are currently within
-   * the shape of the entity with the specified ID.
+   * the given shape and shape transform.
    */
-  role_positions_snapshot(id: number): Promise<RolePosition[]>;
+  role_positions_snapshot(shape: Shape, transform: Transform2D): Promise<RolePosition[]>;
   /**
    * Returns a command for building an AoE. Executing the command returns its
-   * entity ID once it is spawned. Does nothing until `execute()` is called on
+   * entity ID once it is spawned. Does nothing until `spawn()` is called on
    * it.
    */
-  build_aoe(shape: Shape): SpawnEntityCommand;
+  aoe(shape: Shape): SpawnEntityCommand;
+  /**
+   * Displays a cast bar with the given name and duration. This does not wait
+   * until the cast is done. Use `sleep_duration` to wait for the cast.
+   */
+  cast(name: string, duration_ms: number): Promise<void>;
+  /**
+   * Returns a command for building a telegraph that will show the AoE shape
+   * for a duration. Executing the command returns its entity ID once it is
+   * spawned. Does nothing until `spawn()` is called on it.
+   */
+  telegraph(shape: Shape): SpawnEntityCommand;
 }
 /**
  * A wasm-compatible 2D vector that can represent a position or a direction.
@@ -168,6 +194,47 @@ export class MVec2 {
    * Helper to create the unit y vector
    */
   static unit_y(): MVec2;
+}
+/**
+ * Public interface for commands for interfacing with the privileged parts of
+ * the simulation.
+ */
+export class PrivilegedCommands {
+  private constructor();
+  free(): void;
+  /**
+   * Sets the job for a specific role.
+   */
+  set_role_job(role: Role, job: Job): Promise<void>;
+  /**
+   * Signals the world to reset.
+   */
+  signal_reset(): Promise<void>;
+  /**
+   * Toggles the displaying of debug information.
+   */
+  toggle_debug(): Promise<void>;
+  /**
+   * Sets the user's active role.
+   */
+  set_user_role(role: Role): Promise<void>;
+  /**
+   * Updates the layout of the arena.
+   */
+  update_layout(x: number, y: number, width: number, height: number, dpi_scale: number): Promise<void>;
+  /**
+   * Loads the encounter from a given JS script string. It is invalid for
+   * this to be a script URL.
+   */
+  load_encounter(script: string): Promise<void>;
+  /**
+   * Sets whether input is locked.
+   */
+  set_input_locked(locked: boolean): Promise<void>;
+  /**
+   * Toggles the world state between running/paused/setup/finished.
+   */
+  toggle_world_state(): Promise<void>;
 }
 export class RolePosition {
   private constructor();
@@ -205,7 +272,7 @@ export class SpawnEntityCommand {
    * Spawns the entity in the world. Awaiting this method will
    * return its unique ID once spawned.
    */
-  execute(): Promise<number>;
+  spawn(): Promise<number>;
 }
 /**
  * Command for adding auto-movement to an entity. Should not be constructed
@@ -219,9 +286,9 @@ export class StartAutoMovementCommand {
    */
   with_motion(motion: Motion): StartAutoMovementCommand;
   /**
-   * Starts the motion on the entity.
+   * Starts the motion on the target entity.
    */
-  execute(): Promise<void>;
+  apply(target: number): Promise<void>;
 }
 /**
  * A 2D transformation with a center and rotation
@@ -275,22 +342,24 @@ export interface InitOutput {
   readonly __wbg_spawnentitycommand_free: (a: number, b: number) => void;
   readonly __wbg_startautomovementcommand_free: (a: number, b: number) => void;
   readonly __wbg_transform2d_free: (a: number, b: number) => void;
-  readonly applystatuseffectcommand_execute: (a: number) => number;
-  readonly applystatuseffectcommand_execute_and_await_expiration: (a: number) => number;
+  readonly applystatuseffectcommand_apply: (a: number, b: number) => number;
+  readonly applystatuseffectcommand_apply_and_await_expiration: (a: number, b: number) => number;
   readonly applystatuseffectcommand_with_stack_count: (a: number, b: number) => number;
+  readonly encountercommands_aoe: (a: number, b: number) => number;
   readonly encountercommands_apply_damage: (a: number, b: number, c: number) => void;
-  readonly encountercommands_build_aoe: (a: number, b: number) => number;
-  readonly encountercommands_build_auto_movement: (a: number, b: number, c: number, d: number) => number;
-  readonly encountercommands_build_status_effect: (a: number, b: number, c: number, d: number) => number;
-  readonly encountercommands_build_telegraph: (a: number, b: number) => number;
+  readonly encountercommands_auto_movement: (a: number, b: number, c: number) => number;
+  readonly encountercommands_cast: (a: number, b: number, c: number, d: number) => number;
   readonly encountercommands_choose_random: (a: number, b: number) => number;
   readonly encountercommands_entity_expiration: (a: number, b: number) => number;
   readonly encountercommands_finish_encounter: (a: number) => void;
   readonly encountercommands_has_status: (a: number, b: number, c: number) => number;
-  readonly encountercommands_role_positions_snapshot: (a: number, b: number) => number;
-  readonly encountercommands_show_message: (a: number, b: number, c: number) => void;
+  readonly encountercommands_role_positions_snapshot: (a: number, b: number, c: number) => number;
   readonly encountercommands_sleep_duration: (a: number, b: number) => number;
   readonly encountercommands_sleep_until: (a: number, b: number) => number;
+  readonly encountercommands_status_effect: (a: number, b: number, c: number) => number;
+  readonly encountercommands_telegraph: (a: number, b: number) => number;
+  readonly get_job_display_name: (a: number, b: number) => void;
+  readonly get_job_glyph: (a: number, b: number) => void;
   readonly mvec2: (a: number, b: number) => number;
   readonly mvec2_one: () => number;
   readonly mvec2_unit_x: () => number;
@@ -299,6 +368,14 @@ export interface InitOutput {
   readonly mvec2_y: (a: number) => number;
   readonly mvec2_zero: () => number;
   readonly n_evenly_spaced_angles: (a: number, b: number, c: number, d: number) => void;
+  readonly privilegedcommands_load_encounter: (a: number, b: number, c: number) => number;
+  readonly privilegedcommands_set_input_locked: (a: number, b: number) => number;
+  readonly privilegedcommands_set_role_job: (a: number, b: number, c: number) => number;
+  readonly privilegedcommands_set_user_role: (a: number, b: number) => number;
+  readonly privilegedcommands_signal_reset: (a: number) => number;
+  readonly privilegedcommands_toggle_debug: (a: number) => number;
+  readonly privilegedcommands_toggle_world_state: (a: number) => number;
+  readonly privilegedcommands_update_layout: (a: number, b: number, c: number, d: number, e: number, f: number) => number;
   readonly roleposition_new: (a: number, b: number) => number;
   readonly shape_circle: (a: number) => number;
   readonly shape_cone: (a: number, b: number) => number;
@@ -306,10 +383,10 @@ export interface InitOutput {
   readonly shape_rectangle: (a: number, b: number) => number;
   readonly shape_ring: (a: number, b: number) => number;
   readonly shape_ring_sector: (a: number, b: number, c: number) => number;
-  readonly spawnentitycommand_execute: (a: number) => number;
+  readonly spawnentitycommand_spawn: (a: number) => number;
   readonly spawnentitycommand_with_duration: (a: number, b: number) => number;
   readonly spawnentitycommand_with_transform: (a: number, b: number) => number;
-  readonly startautomovementcommand_execute: (a: number) => number;
+  readonly startautomovementcommand_apply: (a: number, b: number) => number;
   readonly startautomovementcommand_with_motion: (a: number, b: number) => number;
   readonly surround_point: (a: number, b: number, c: number, d: number, e: number) => void;
   readonly transform2d_new: () => number;
@@ -319,7 +396,6 @@ export interface InitOutput {
   readonly transform2d_with_angle: (a: number, b: number) => number;
   readonly transform2d_with_direction: (a: number, b: number) => number;
   readonly main: (a: number, b: number) => number;
-  readonly __getrandom_custom: (a: number, b: number) => number;
   readonly allocate_vec_u8: (a: number) => number;
   readonly crate_version: () => number;
   readonly file_loaded: (a: number) => void;
@@ -339,8 +415,7 @@ export interface InitOutput {
   readonly raw_mouse_move: (a: number, b: number) => void;
   readonly resize: (a: number, b: number) => void;
   readonly touch: (a: number, b: number, c: number, d: number) => void;
-  readonly quad_url_crate_version: () => number;
-  readonly sapp_jsutils_crate_version: () => number;
+  readonly __wbg_privilegedcommands_free: (a: number, b: number) => void;
   readonly __wbindgen_export_0: (a: number) => void;
   readonly __wbindgen_export_1: (a: number, b: number, c: number) => void;
   readonly __wbindgen_export_2: (a: number, b: number) => number;

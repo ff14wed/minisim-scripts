@@ -7,20 +7,16 @@ const STATUS_DOOM = 215020;
 const STATUS_UNKNOWN = 215503;
 
 /**
- * Returns the name of the encounter.
- * @return {string}
+ * The name of the encounter.
+ * @type {string}
  */
-function encounter_name() {
-  return "JS Encounter";
-}
+const ENCOUNTER_NAME = "JS Encounter";
 
 /**
- * Returns the arena for the encounter.
- * @return {api.Arena}
+ * The arena for the encounter.
+ * @type {api.Arena}
  */
-function arena() {
-  return api.Arena.TopPhase2;
-}
+const ARENA = api.Arena.TopPhase2;
 
 const zip = (a, b) => a.map((k, i) => [k, b[i]]);
 
@@ -57,15 +53,12 @@ function used_status_effect_ids() {
 }
 
 async function spawn_aoe(commands, shape, transform) {
-  let id = await commands.build_aoe(shape).with_transform(transform).execute();
-  let snapshot = await commands.role_positions_snapshot(id);
+  let snapshot = await commands.role_positions_snapshot(shape, transform);
+  await commands.sleep_duration(500);
+  await commands.aoe(shape).with_transform(transform).spawn();
   for (let role_snapshot of snapshot) {
-    commands
-      .build_status_effect(role_snapshot.role, STATUS_UNKNOWN, 3000)
-      .execute();
-    commands
-      .build_status_effect(role_snapshot.role, STATUS_DOOM, 3000)
-      .execute();
+    commands.status_effect(STATUS_UNKNOWN, 3000).apply(role_snapshot.role);
+    commands.status_effect(STATUS_DOOM, 3000).apply(role_snapshot.role);
   }
 }
 
@@ -110,27 +103,31 @@ async function run(commands) {
       transform: api.Transform2D.new(),
     },
   ];
-  print("Sleeping until t=1 second...");
+  showInfo("Sleeping until t=1 second...");
   await commands.sleep_until(1000);
+  let cast_time = 2000;
+  commands.cast("Kitchen Sink", cast_time);
+
   for (let aoe of aoes) {
     commands
-      .build_telegraph(aoe.shape)
+      .telegraph(aoe.shape)
       .with_duration(2000)
       .with_transform(aoe.transform)
-      .execute();
+      .spawn();
   }
-
-  print("Sleeping until t=3 seconds...");
-  await commands.sleep_until(3000);
+  await commands.sleep_duration(cast_time);
 
   for (let aoe of aoes) {
     spawn_aoe(commands, aoe.shape, aoe.transform);
   }
+
+  await commands.sleep_until(7000);
+  await commands.finish_encounter();
 }
 
 globalThis.exports = {
-  encounter_name,
-  arena,
+  ENCOUNTER_NAME,
+  ARENA,
   role_positions,
   used_status_effect_ids,
   run,

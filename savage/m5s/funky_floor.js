@@ -9,24 +9,20 @@ const STATUS_MAGIC_VULNERABILITY_UP = 215057;
 const STATUS_DAMAGE_DOWN = 215520;
 
 // =============================================================================
-// Public functions
+// Public exports
 // =============================================================================
 
 /**
- * Returns the name of the encounter.
- * @return {string}
+ * The name of the encounter.
+ * @type {string}
  */
-function encounter_name() {
-  return "M5S Funky Floor";
-}
+const ENCOUNTER_NAME = "M5S Funky Floor";
 
 /**
- * Returns the arena for the encounter.
- * @return {api.Arena}
+ * The arena for the encounter.
+ * @type {api.Arena}
  */
-function arena() {
-  return api.Arena.M5Savage;
-}
+const ARENA = api.Arena.M5Savage;
 
 /**
  * Returns a list of (Role, Initial Position) pairs for the encounter.
@@ -57,7 +53,8 @@ function used_status_effect_ids() {
  * @param {api.EncounterCommands} commands
  */
 async function run(commands) {
-  await commands.sleep_until(2000);
+  commands.cast("Disco Infernal", 2000);
+  await commands.sleep_duration(2000);
   disco_infernal(commands);
 
   // Spawn spotlights at the end of the disco infernal animation
@@ -74,8 +71,8 @@ async function run(commands) {
 
 // Export the public interface for this encounter script.
 globalThis.exports = {
-  encounter_name,
-  arena,
+  ENCOUNTER_NAME,
+  ARENA,
   role_positions,
   used_status_effect_ids,
   run,
@@ -92,13 +89,12 @@ globalThis.exports = {
  * @param {api.Transform2D} transform
  */
 async function spawn_aoe(commands, shape, transform) {
-  let id = await commands.build_aoe(shape).with_transform(transform).execute();
-  let snapshot = await commands.role_positions_snapshot(id);
+  let snapshot = await commands.role_positions_snapshot(shape, transform);
+  await commands.sleep_duration(500);
+  await commands.aoe(shape).with_transform(transform).spawn();
   for (let role_snapshot of snapshot) {
     await magic_damage(commands, role_snapshot);
-    commands
-      .build_status_effect(role_snapshot.role, STATUS_DAMAGE_DOWN, 30000)
-      .execute();
+    commands.status_effect(STATUS_DAMAGE_DOWN, 30000).apply(role_snapshot.role);
   }
 }
 
@@ -116,12 +112,8 @@ async function magic_damage(commands, role_snapshot) {
   let damage = is_fatal ? 1.0 : 0.3;
   commands.apply_damage(role_snapshot.role, damage);
   await commands
-    .build_status_effect(
-      role_snapshot.role,
-      STATUS_MAGIC_VULNERABILITY_UP,
-      2000
-    )
-    .execute();
+    .status_effect(STATUS_MAGIC_VULNERABILITY_UP, 2000)
+    .apply(role_snapshot.role);
 }
 
 /**
@@ -141,20 +133,17 @@ async function die_on_expiration(commands, role, expiration) {
  * @param {api.EncounterCommands} commands
  */
 async function disco_infernal(commands) {
-  let id = await commands
-    .build_aoe(api.Shape.circle(60.0))
-    .with_duration(1800)
-    .execute();
-  let snapshot = await commands.role_positions_snapshot(id);
+  let snapshot = await commands.role_positions_snapshot(
+    api.Shape.circle(60.0),
+    api.Transform2D.new()
+  );
+  await commands.sleep_duration(500);
+  await commands.aoe(api.Shape.circle(60.0)).with_duration(1800).spawn();
   for (let role_snapshot of snapshot) {
     let duration_ms = commands.choose_random(2) == 0 ? 23500 : 31500;
     let status_expiration = commands
-      .build_status_effect(
-        role_snapshot.role,
-        STATUS_BURN_BABY_BURN,
-        duration_ms
-      )
-      .execute_and_await_expiration();
+      .status_effect(STATUS_BURN_BABY_BURN, duration_ms)
+      .apply_and_await_expiration(role_snapshot.role);
     die_on_expiration(commands, role_snapshot.role, status_expiration);
   }
 }
@@ -185,19 +174,16 @@ async function inside_spotlight(commands, a_x, a_y, b_x, b_y) {
   let dests = [tfb, tfa, tfb, tfa];
 
   let entity_id = await commands
-    .build_telegraph(api.Shape.circle(2.5))
+    .telegraph(api.Shape.circle(2.5))
     .with_transform(tfa)
     .with_duration(34467)
-    .execute();
+    .spawn();
   // Initial wait duration
   await commands.sleep_duration(1533);
   for (let dest of dests) {
-    commands.build_auto_movement(entity_id, dest, 4000).execute();
+    commands.auto_movement(dest, 4000).apply(entity_id);
     await commands.sleep_duration(4000);
-    await commands
-      .build_aoe(api.Shape.circle(2.5))
-      .with_transform(dest)
-      .execute();
+    await commands.aoe(api.Shape.circle(2.5)).with_transform(dest).spawn();
     await commands.sleep_duration(4000);
   }
 }
@@ -230,10 +216,10 @@ async function spawn_floor_aoe(commands, x, y, is_first) {
   );
   let telegraph_duration = is_first ? 3000 : 2000;
   await commands
-    .build_telegraph(shape)
+    .telegraph(shape)
     .with_transform(transform)
     .with_duration(telegraph_duration)
-    .execute();
+    .spawn();
   await commands.sleep_duration(telegraph_duration + 200);
   await spawn_aoe(commands, shape, transform);
 }
