@@ -138,7 +138,7 @@ async function disco_infernal(commands) {
     api.Transform2D.new()
   );
   await commands.sleep_duration(500);
-  await commands.aoe(api.Shape.circle(60.0)).spawn();
+  await commands.aoe(api.Shape.circle(60.0)).with_duration(1800).spawn();
   for (let role_snapshot of snapshot) {
     let duration_ms = commands.choose_random(2) == 0 ? 23500 : 31500;
     let status_expiration = commands
@@ -178,13 +178,14 @@ async function inside_spotlight(commands, a_x, a_y, b_x, b_y) {
     .with_transform(tfa)
     .with_duration(34467)
     .with_color(0xffffff, 0.3)
+    .with_pulse(false)
     .spawn();
   // Initial wait duration
   await commands.sleep_duration(1533);
   for (let dest of dests) {
     commands.auto_movement(dest, 4000).apply(entity_id);
     await commands.sleep_duration(4000);
-    commands.change_color(entity_id, 0xffffff, 1.0);
+    commands.change_color(entity_id, 0xffffff, 0.8);
     await commands.sleep_duration(4000);
     commands.change_color(entity_id, 0xffffff, 0.3);
   }
@@ -197,9 +198,10 @@ async function inside_spotlight(commands, a_x, a_y, b_x, b_y) {
 async function alternate_floor_aoes(commands) {
   var shifted = false;
   for (let i = 0; i < 10; i++) {
-    spawn_floor_aoes(commands, shifted, i == 0);
+    let telegraph_duration = i == 0 ? 3000 : 2000;
+    spawn_floor_aoes(commands, shifted, telegraph_duration);
     shifted = !shifted;
-    await commands.sleep_duration(4000);
+    await commands.sleep_duration(telegraph_duration + 2000);
   }
 }
 
@@ -209,30 +211,29 @@ async function alternate_floor_aoes(commands) {
  * @param {api.EncounterCommands} commands
  * @param {number} x
  * @param {number} y
- * @param {boolean} is_first
+ * @param {number} duration - Telegraph duration in milliseconds
  */
-async function spawn_floor_aoe(commands, x, y, is_first) {
+async function spawn_floor_aoe(commands, x, y, duration) {
   let shape = api.Shape.rectangle(5.0, 5.0);
   let transform = api.Transform2D.new_from_pos(api.mvec2(x, y)).with_angle(
     Math.PI / 2
   );
-  let telegraph_duration = is_first ? 3000 : 2000;
   await commands
     .telegraph(shape)
     .with_transform(transform)
-    .with_duration(telegraph_duration)
+    .with_duration(duration)
     .spawn();
-  await commands.sleep_duration(telegraph_duration + 200);
+  await commands.sleep_duration(duration + 200);
   await spawn_aoe(commands, shape, transform);
 }
 
 /**
  * Spawns the telegraphs and AoEs for the Funky Floor AoEs.
  * @param {api.EncounterCommands} commands
- * @param {boolean} shifted
- * @param {boolean} is_first
+ * @param {boolean} shifted - Whether to shift the pattern or not
+ * @param {boolean} duration - Telegraph duration in milliseconds
  */
-function spawn_floor_aoes(commands, shifted, is_first) {
+function spawn_floor_aoes(commands, shifted, duration) {
   // Spawns squares that are 5 yalms wide in alternating fashion starting from
   // (-20, -20) to (20, 20)
   // The initial square is (-15, -17.5) because it is rotated sideways so that
@@ -248,7 +249,7 @@ function spawn_floor_aoes(commands, shifted, is_first) {
       if (spawn_here) {
         continue;
       }
-      spawn_floor_aoe(commands, x, y, is_first);
+      spawn_floor_aoe(commands, x, y, duration);
     }
   }
 }

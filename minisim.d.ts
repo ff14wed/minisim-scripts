@@ -154,8 +154,8 @@ export class EncounterCommands {
   role_positions_snapshot(shape: Shape, transform: Transform2D): Promise<RolePosition[]>;
   /**
    * Returns a command for building an AoE. Executing the command returns its
-   * entity ID once it is spawned. Does nothing until `spawn()` is called on
-   * it.
+   * entity ID once it is spawned. Defaults to a white AoE visible for 1s.
+   * Does nothing until `spawn()` is called on it.
    */
   aoe(shape: Shape): SpawnEntityCommand;
   /**
@@ -165,8 +165,9 @@ export class EncounterCommands {
   cast(name: string, duration_ms: number): Promise<void>;
   /**
    * Returns a command for building a telegraph that will show the AoE shape
-   * for a duration. Executing the command returns its entity ID once it is
-   * spawned. Does nothing until `spawn()` is called on it.
+   * for a duration. Defaults to an orange (#FF8400) telegraph visible for
+   * 0.5s with pulsing.  Executing the command returns its entity ID once it is spawned.
+   * Does nothing until `spawn()` is called on it.
    */
   telegraph(shape: Shape): SpawnEntityCommand;
 }
@@ -270,6 +271,10 @@ export class SpawnEntityCommand {
    * Sets the color of the entity with a hex code and opacity from 0.0 to 1.0.
    */
   with_color(hex: number, opacity: number): SpawnEntityCommand;
+  /**
+   * Sets the pulsing effect. Only applicable to telegraphs.
+   */
+  with_pulse(pulse: boolean): SpawnEntityCommand;
   /**
    * Sets the visible duration of the entity in milliseconds.
    */
@@ -397,6 +402,7 @@ export interface InitOutput {
   readonly spawnentitycommand_spawn: (a: number) => number;
   readonly spawnentitycommand_with_color: (a: number, b: number, c: number) => number;
   readonly spawnentitycommand_with_duration: (a: number, b: number) => number;
+  readonly spawnentitycommand_with_pulse: (a: number, b: number) => number;
   readonly spawnentitycommand_with_transform: (a: number, b: number) => number;
   readonly startautomovementcommand_apply: (a: number, b: number) => number;
   readonly startautomovementcommand_with_motion: (a: number, b: number) => number;
