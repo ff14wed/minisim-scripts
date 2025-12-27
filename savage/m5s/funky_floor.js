@@ -138,7 +138,7 @@ async function disco_infernal(commands) {
     api.Transform2D.new()
   );
   await commands.sleep_duration(500);
-  await commands.aoe(api.Shape.circle(60.0)).with_duration(1800).spawn();
+  await commands.aoe(api.Shape.circle(60.0)).spawn();
   for (let role_snapshot of snapshot) {
     let duration_ms = commands.choose_random(2) == 0 ? 23500 : 31500;
     let status_expiration = commands
@@ -177,14 +177,16 @@ async function inside_spotlight(commands, a_x, a_y, b_x, b_y) {
     .telegraph(api.Shape.circle(2.5))
     .with_transform(tfa)
     .with_duration(34467)
+    .with_color(0xffffff, 0.3)
     .spawn();
   // Initial wait duration
   await commands.sleep_duration(1533);
   for (let dest of dests) {
     commands.auto_movement(dest, 4000).apply(entity_id);
     await commands.sleep_duration(4000);
-    await commands.aoe(api.Shape.circle(2.5)).with_transform(dest).spawn();
+    commands.change_color(entity_id, 0xffffff, 1.0);
     await commands.sleep_duration(4000);
+    commands.change_color(entity_id, 0xffffff, 0.3);
   }
 }
 

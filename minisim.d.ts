@@ -114,6 +114,12 @@ export class EncounterCommands {
    */
   apply_damage(role: Role, damage: number): void;
   /**
+   * Changes the color of the specified entity (with RGB hex and opacity from
+   * 0.0 to 1.0). The default color for telegraphs is 0xFF8400 (orange) and
+   * the default colors for AoEs is 0xFFFFFF (white).
+   */
+  change_color(entity_id: number, hex: number, opacity: number): void;
+  /**
    * Returns a command for moving an entity to the target position
    * over the specified duration in milliseconds. Does nothing until
    * `apply()` is called on on a target.
@@ -261,6 +267,10 @@ export class SpawnEntityCommand {
   private constructor();
   free(): void;
   /**
+   * Sets the color of the entity with a hex code and opacity from 0.0 to 1.0.
+   */
+  with_color(hex: number, opacity: number): SpawnEntityCommand;
+  /**
    * Sets the visible duration of the entity in milliseconds.
    */
   with_duration(duration_ms: number): SpawnEntityCommand;
@@ -349,6 +359,7 @@ export interface InitOutput {
   readonly encountercommands_apply_damage: (a: number, b: number, c: number) => void;
   readonly encountercommands_auto_movement: (a: number, b: number, c: number) => number;
   readonly encountercommands_cast: (a: number, b: number, c: number, d: number) => number;
+  readonly encountercommands_change_color: (a: number, b: number, c: number, d: number) => void;
   readonly encountercommands_choose_random: (a: number, b: number) => number;
   readonly encountercommands_entity_expiration: (a: number, b: number) => number;
   readonly encountercommands_finish_encounter: (a: number) => void;
@@ -384,6 +395,7 @@ export interface InitOutput {
   readonly shape_ring: (a: number, b: number) => number;
   readonly shape_ring_sector: (a: number, b: number, c: number) => number;
   readonly spawnentitycommand_spawn: (a: number) => number;
+  readonly spawnentitycommand_with_color: (a: number, b: number, c: number) => number;
   readonly spawnentitycommand_with_duration: (a: number, b: number) => number;
   readonly spawnentitycommand_with_transform: (a: number, b: number) => number;
   readonly startautomovementcommand_apply: (a: number, b: number) => number;
