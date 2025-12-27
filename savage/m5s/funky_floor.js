@@ -88,10 +88,14 @@ globalThis.exports = {
  * @param {api.Shape} shape
  * @param {api.Transform2D} transform
  */
-async function spawn_aoe(commands, shape, transform) {
+async function spawn_aoe(commands, shape, transform, color) {
   let snapshot = await commands.role_positions_snapshot(shape, transform);
   await commands.sleep_duration(500);
-  await commands.aoe(shape).with_transform(transform).spawn();
+  await commands
+    .aoe(shape)
+    .with_transform(transform)
+    .with_color(color, 0.8)
+    .spawn();
   for (let role_snapshot of snapshot) {
     await magic_damage(commands, role_snapshot);
     commands.status_effect(STATUS_DAMAGE_DOWN, 30000).apply(role_snapshot.role);
@@ -212,8 +216,9 @@ async function alternate_floor_aoes(commands) {
  * @param {number} x
  * @param {number} y
  * @param {number} duration - Telegraph duration in milliseconds
+ * @param {number} color - Color of the AoE in hexadecimal
  */
-async function spawn_floor_aoe(commands, x, y, duration) {
+async function spawn_floor_aoe(commands, x, y, duration, color) {
   let shape = api.Shape.rectangle(5.0, 5.0);
   let transform = api.Transform2D.new_from_pos(api.mvec2(x, y)).with_angle(
     Math.PI / 2
@@ -224,8 +229,31 @@ async function spawn_floor_aoe(commands, x, y, duration) {
     .with_duration(duration)
     .spawn();
   await commands.sleep_duration(duration + 200);
-  await spawn_aoe(commands, shape, transform);
+  await spawn_aoe(commands, shape, transform, color);
 }
+
+const colors = [
+  0x00ff00, // #00ff00 - Green
+  0x00ffff, // #00ffff - Cyan
+  0xff00ff, // #ff00ff - Magenta
+  0xffa500, // #ffa500 - Orange
+  0xffff00, // #ffff00 - Yellow
+  0x0000ff, // #0000ff - Blue
+  0xff0000, // #ff0000 - Red
+];
+
+// Encoded grid colors (row-major order)
+// prettier-ignore
+const grid = [
+  0, 1, 1, 2, 3, 4, 1, 1,
+  3, 0, 0, 5, 0, 0, 2, 5,
+  5, 6, 3, 5, 4, 4, 3, 4,
+  2, 4, 2, 0, 3, 5, 5, 2,
+  1, 1, 5, 1, 2, 6, 4, 3,
+  3, 2, 4, 3, 0, 4, 1, 4,
+  1, 0, 2, 4, 5, 2, 2, 6,
+  2, 2, 6, 2, 4, 0, 5, 5,
+];
 
 /**
  * Spawns the telegraphs and AoEs for the Funky Floor AoEs.
@@ -238,18 +266,18 @@ function spawn_floor_aoes(commands, shifted, duration) {
   // (-20, -20) to (20, 20)
   // The initial square is (-15, -17.5) because it is rotated sideways so that
   // the base is in the middle of the right edge of the square.
-  let shape = api.Shape.rectangle(5.0, 5.0);
-  var row_shifted = shifted;
-  for (let y = -17.5; y < 20; y += 5) {
-    row_shifted = !row_shifted;
-    var spawn_here = row_shifted;
-    for (let x = -15; x <= 20; x += 5) {
-      // Flip the spawn_here flag, and skip if it was false.
-      spawn_here = !spawn_here;
-      if (spawn_here) {
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      // Check if we should spawn at this grid position based on the shifted flag
+      if ((row + col) % 2 !== (shifted ? 1 : 0)) {
         continue;
       }
-      spawn_floor_aoe(commands, x, y, duration);
+
+      let x = col * 5 - 15;
+      let y = row * 5 - 17.5;
+      let color = colors[grid[row * 8 + col]];
+
+      spawn_floor_aoe(commands, x, y, duration, color);
     }
   }
 }
