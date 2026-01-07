@@ -120,6 +120,12 @@ export class EncounterCommands {
    */
   change_color(entity_id: number, hex: number, opacity: number): void;
   /**
+   * Returns a command for building an enemy sprite. Executing the command
+   * returns its entity ID once it is spawned. Defaults to a red sprite
+   * visible until despawned.  Does nothing until `spawn()` is called on it.
+   */
+  enemy_sprite(scale: number): SpawnEntityCommand;
+  /**
    * Returns a command for moving an entity to the target position
    * over the specified duration in milliseconds. Does nothing until
    * `apply()` is called on on a target.
@@ -139,6 +145,13 @@ export class EncounterCommands {
    * Sleeps for the specified duration in milliseconds.
    */
   sleep_duration(duration_ms: number): Promise<void>;
+  /**
+   * Returns a command for building a targeting ring. Executing the command
+   * returns its entity ID once it is spawned. Defaults to a red targeting
+   * ring visible until despawned.  Does nothing until `spawn()` is called on
+   * it.
+   */
+  targeting_ring(radius: number): SpawnEntityCommand;
   /**
    * Ends the encounter.
    */
@@ -166,8 +179,8 @@ export class EncounterCommands {
   /**
    * Returns a command for building a telegraph that will show the AoE shape
    * for a duration. Defaults to an orange (#FF8400) telegraph visible for
-   * 0.5s with pulsing.  Executing the command returns its entity ID once it is spawned.
-   * Does nothing until `spawn()` is called on it.
+   * 0.5s with pulsing.  Executing the command returns its entity ID once it
+   * is spawned.  Does nothing until `spawn()` is called on it.
    */
   telegraph(shape: Shape): SpawnEntityCommand;
 }
@@ -276,6 +289,10 @@ export class SpawnEntityCommand {
    */
   with_pulse(pulse: boolean): SpawnEntityCommand;
   /**
+   * Sets the scale of the sprite. Only applicable to sprites.
+   */
+  with_scale(scale: number): SpawnEntityCommand;
+  /**
    * Sets the visible duration of the entity in milliseconds.
    */
   with_duration(duration_ms: number): SpawnEntityCommand;
@@ -366,6 +383,7 @@ export interface InitOutput {
   readonly encountercommands_cast: (a: number, b: number, c: number, d: number) => number;
   readonly encountercommands_change_color: (a: number, b: number, c: number, d: number) => void;
   readonly encountercommands_choose_random: (a: number, b: number) => number;
+  readonly encountercommands_enemy_sprite: (a: number, b: number) => number;
   readonly encountercommands_entity_expiration: (a: number, b: number) => number;
   readonly encountercommands_finish_encounter: (a: number) => void;
   readonly encountercommands_has_status: (a: number, b: number, c: number) => number;
@@ -373,6 +391,7 @@ export interface InitOutput {
   readonly encountercommands_sleep_duration: (a: number, b: number) => number;
   readonly encountercommands_sleep_until: (a: number, b: number) => number;
   readonly encountercommands_status_effect: (a: number, b: number, c: number) => number;
+  readonly encountercommands_targeting_ring: (a: number, b: number) => number;
   readonly encountercommands_telegraph: (a: number, b: number) => number;
   readonly get_job_display_name: (a: number, b: number) => void;
   readonly get_job_glyph: (a: number, b: number) => void;
@@ -403,6 +422,7 @@ export interface InitOutput {
   readonly spawnentitycommand_with_color: (a: number, b: number, c: number) => number;
   readonly spawnentitycommand_with_duration: (a: number, b: number) => number;
   readonly spawnentitycommand_with_pulse: (a: number, b: number) => number;
+  readonly spawnentitycommand_with_scale: (a: number, b: number) => number;
   readonly spawnentitycommand_with_transform: (a: number, b: number) => number;
   readonly startautomovementcommand_apply: (a: number, b: number) => number;
   readonly startautomovementcommand_with_motion: (a: number, b: number) => number;

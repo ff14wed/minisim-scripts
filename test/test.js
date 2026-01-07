@@ -68,6 +68,9 @@ async function spawn_aoe(commands, shape, transform) {
  * @param {api.EncounterCommands} commands
  */
 async function run(commands) {
+  commands.enemy_sprite(1.0).spawn();
+  commands.targeting_ring(10.0).spawn();
+
   let aoes = [
     {
       shape: api.Shape.cone(5.0, Math.PI / 2),
