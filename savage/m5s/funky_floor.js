@@ -53,6 +53,9 @@ function used_status_effect_ids() {
  * @param {api.EncounterCommands} commands
  */
 async function run(commands) {
+  commands.enemy_sprite(1.0).spawn();
+  commands.targeting_ring(5.0).spawn();
+
   commands.cast("Disco Infernal", 2000);
   await commands.sleep_duration(2000);
   disco_infernal(commands);
