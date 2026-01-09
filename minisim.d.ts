@@ -4,6 +4,11 @@ export function get_job_display_name(job: Job): string;
 export function get_job_glyph(job: Job): string;
 export function mvec2(x: number, y: number): MVec2;
 /**
+ * Generates points that are evenly spaced around a point at a given distance
+ * Requires passing in the angles with which to surround the point.
+ */
+export function surround_point(point: MVec2, distance: number, angles: Float32Array): MVec2[];
+/**
  * Generates n evenly spaced angles counter-clockwise from start_angle to end_angle
  *
  * Note that the result will not include the end angle. In order to generate
@@ -14,11 +19,6 @@ export function mvec2(x: number, y: number): MVec2;
  * a full rotation.
  */
 export function n_evenly_spaced_angles(n: number, start_angle: number, end_angle: number): Float32Array;
-/**
- * Generates points that are evenly spaced around a point at a given distance
- * Requires passing in the angles with which to surround the point.
- */
-export function surround_point(point: MVec2, distance: number, angles: Float32Array): MVec2[];
 export enum Arena {
   TopPhase1 = 0,
   TopPhase2 = 1,
@@ -27,6 +27,7 @@ export enum Arena {
   TopPhase5 = 4,
   TopPhase6 = 5,
   M5Savage = 6,
+  M11SavageA = 7,
 }
 export enum Job {
   Astrologian = 0,
@@ -136,6 +137,10 @@ export class EncounterCommands {
    */
   choose_random(n: number): number;
   /**
+   * Removes a status effect from the specified role.
+   */
+  remove_status(role: Role, id: number): void;
+  /**
    * Returns a command for applying a status effect to a role.  Applying the
    * command to a role returns a future that can be awaited for the
    * expiration of the effect. Does nothing until `apply()` is called.
@@ -176,6 +181,10 @@ export class EncounterCommands {
    * until the cast is done. Use `sleep_duration` to wait for the cast.
    */
   cast(name: string, duration_ms: number): Promise<void>;
+  /**
+   * Despawns the specified entity.
+   */
+  despawn(entity_id: number): void;
   /**
    * Returns a command for building a telegraph that will show the AoE shape
    * for a duration. Defaults to an orange (#FF8400) telegraph visible for
@@ -383,10 +392,12 @@ export interface InitOutput {
   readonly encountercommands_cast: (a: number, b: number, c: number, d: number) => number;
   readonly encountercommands_change_color: (a: number, b: number, c: number, d: number) => void;
   readonly encountercommands_choose_random: (a: number, b: number) => number;
+  readonly encountercommands_despawn: (a: number, b: number) => void;
   readonly encountercommands_enemy_sprite: (a: number, b: number) => number;
   readonly encountercommands_entity_expiration: (a: number, b: number) => number;
   readonly encountercommands_finish_encounter: (a: number) => void;
   readonly encountercommands_has_status: (a: number, b: number, c: number) => number;
+  readonly encountercommands_remove_status: (a: number, b: number, c: number) => void;
   readonly encountercommands_role_positions_snapshot: (a: number, b: number, c: number) => number;
   readonly encountercommands_sleep_duration: (a: number, b: number) => number;
   readonly encountercommands_sleep_until: (a: number, b: number) => number;
