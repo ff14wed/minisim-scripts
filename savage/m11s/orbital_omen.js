@@ -65,9 +65,10 @@ async function run(commands) {
     .with_transform(api.Transform2D.new())
     .spawn();
 
-  // Shuffle positions for columns (X) and rows (Y)
-  const xPositions = shuffle([-15, -5, 5, 15], commands);
-  const yPositions = shuffle([-15, -5, 5, 15], commands);
+  // Shuffle positions for columns (X) and rows (Y).
+  // The second set (index 1) is guaranteed to be an intersection of two inner lines.
+  const xPositions = generateSetPositions(commands);
+  const yPositions = generateSetPositions(commands);
 
   // Orbital Omen cast (2 seconds)
   await commands.cast("Orbital Omen", 2000);
@@ -244,6 +245,21 @@ async function fireAndFuryConals(commands) {
     .spawn();
 
   await Promise.all([frontAoE, backAoE]);
+}
+
+/**
+ * Generates a shuffled list of positions where the second element is guaranteed
+ * to be an inner line (-5 or 5).
+ * @param {api.EncounterCommands} commands
+ * @returns {number[]}
+ */
+function generateSetPositions(commands) {
+  const inners = [-5, 5];
+  const outers = [-15, 15];
+  const secondValIdx = commands.choose_random(2);
+  const secondVal = inners[secondValIdx];
+  const remaining = shuffle([inners[1 - secondValIdx], ...outers], commands);
+  return [remaining[0], secondVal, remaining[1], remaining[2]];
 }
 
 /**
